@@ -1765,6 +1765,23 @@ static void argv_cleanup(char **argv, char **envp)
 }
 
 /**
+ *	sys_team06 - identify current process and display system time
+ *
+ *	This is for the Fall 2011 Unix Project.
+ */
+asmlinkage long sys_team06(void)
+{
+	struct rusage usage;
+	k_getrusage(current, RUSAGE_SELF, &usage);
+	printk("sys_team06 called from process %d.\n"
+	       "system time: %ld seconds, %ld microseconds.\n",
+					current->tgid,
+				usage.ru_stime.tv_sec,
+				usage.ru_stime.tv_usec);
+	return 0;
+}
+
+/**
  * orderly_poweroff - Trigger an orderly system poweroff
  * @force: force poweroff if command execution fails
  *
