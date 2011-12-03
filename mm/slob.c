@@ -643,3 +643,22 @@ void __init kmem_cache_init(void)
 {
 	slob_ready = 1;
 }
+
+asmlinkage unsigned int sys_get_slob_amt_free(void)
+{
+	unsigned int amt_free = 0;
+	struct slob_page *sp;
+	unsigned long flags;
+
+	spin_lock_irqsave(&slob_lock, flags);
+	/* Iterate through each free list and add up free units */
+	list_for_each_entry(sp, &free_slob_small, list)
+		amt_free += sp->units;
+	list_for_each_entry(sp, &free_slob_medium, list)
+		amt_free += sp->units;
+	list_for_each_entry(sp, &free_slob_large, list)
+		amt_free += sp->units;
+	spin_unlock_irqrestore(&slob_lock, flags);
+
+	return amt_free;
+}
