@@ -5,6 +5,8 @@
  *
  * NUMA support by Paul Mundt, 2007.
  *
+ * Worst-fit by Team 06 (Louise Fok), 2011
+ *
  * How SLOB works:
  *
  * The core of SLOB is a traditional K&R style heap allocator, with
@@ -306,7 +308,7 @@ static void *slob_page_alloc(struct slob_page *sp, size_t size, int align)
 static void *slob_alloc(size_t size, gfp_t gfp, int align, int node)
 {
 	struct slob_page *sp;
-	struct list_head *prev;
+	struct slob_page *largest = NULL;
 	struct list_head *slob_list;
 	slob_t *b = NULL;
 	unsigned long flags;
@@ -329,24 +331,16 @@ static void *slob_alloc(size_t size, gfp_t gfp, int align, int node)
 		if (node != -1 && page_to_nid(&sp->page) != node)
 			continue;
 #endif
+		if (!largest) {
+			largest = sp;
+			continue;
+		}
 		/* Enough room on this page? */
-		if (sp->units < SLOB_UNITS(size))
-			continue;
-
-		/* Attempt to alloc */
-		prev = sp->list.prev;
-		b = slob_page_alloc(sp, size, align);
-		if (!b)
-			continue;
-
-		/* Improve fragment distribution and reduce our average
-		 * search time by starting our next search here. (see
-		 * Knuth vol 1, sec 2.5, pg 449) */
-		if (prev != slob_list->prev &&
-				slob_list->next != prev->next)
-			list_move_tail(slob_list, prev->next);
-		break;
+		if (sp->units >= SLOB_UNITS(size) &&
+				sp->units > largest->units)
+			largest = sp;
 	}
+	b = slob_page_alloc(largest, size, align);
 	spin_unlock_irqrestore(&slob_lock, flags);
 
 	/* Not enough space: must allocate a new page */
