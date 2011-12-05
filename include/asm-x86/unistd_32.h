@@ -332,7 +332,8 @@
 #define __NR_fallocate		324
 #define __NR_timerfd_settime	325
 #define __NR_timerfd_gettime	326
-#define __NR_get_slob_amt_free	327
+#define __NR_get_slob_amt_claimed	327
+#define __NR_get_slob_amt_free	328
 
 #ifdef __KERNEL__
 

@@ -67,6 +67,8 @@
 #include <linux/list.h>
 #include <asm/atomic.h>
 
+static unsigned int amt_claimed = 0;
+
 /*
  * slob_block has a field 'units', which indicates size of block if +ve,
  * or offset of next block if -ve (in SLOB_UNITs).
@@ -349,6 +351,7 @@ static void *slob_alloc(size_t size, gfp_t gfp, int align, int node)
 
 	/* Not enough space: must allocate a new page */
 	if (!b) {
+		amt_claimed += PAGE_SIZE;
 		b = slob_new_page(gfp & ~__GFP_ZERO, 0, node);
 		if (!b)
 			return 0;
@@ -642,6 +645,11 @@ int slab_is_available(void)
 void __init kmem_cache_init(void)
 {
 	slob_ready = 1;
+}
+
+asmlinkage unsigned int sys_get_slob_amt_claimed(void)
+{
+	return amt_claimed;
 }
 
 asmlinkage unsigned int sys_get_slob_amt_free(void)
