@@ -309,6 +309,7 @@ static void *slob_alloc(size_t size, gfp_t gfp, int align, int node)
 {
 	struct slob_page *sp;
 	struct slob_page *largest = NULL;
+	struct list_head *prev;
 	struct list_head *slob_list;
 	slob_t *b = NULL;
 	unsigned long flags;
@@ -331,16 +332,30 @@ static void *slob_alloc(size_t size, gfp_t gfp, int align, int node)
 		if (node != -1 && page_to_nid(&sp->page) != node)
 			continue;
 #endif
+		/* Enough room on this page? */
+		if (sp->units < SLOB_UNITS(size))
+			continue;
+
 		if (!largest) {
 			largest = sp;
 			continue;
 		}
-		/* Enough room on this page? */
-		if (sp->units >= SLOB_UNITS(size) &&
-				sp->units > largest->units)
+		if (sp->units > largest->units)
 			largest = sp;
 	}
-	b = slob_page_alloc(largest, size, align);
+
+	/* Attempt to alloc */
+	if(largest) {
+		prev = largest->list.prev;
+		b = slob_page_alloc(largest, size, align);
+
+		/* Improve fragment distribution and reduce our average
+		 * search time by starting our next search here. (see
+		 * Knuth vol 1, sec 2.5, pg 449) */
+		if (prev != slob_list->prev &&
+				slob_list->next != prev->next)
+			list_move_tail(slob_list, prev->next);
+	}
 	spin_unlock_irqrestore(&slob_lock, flags);
 
 	/* Not enough space: must allocate a new page */
