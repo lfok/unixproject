@@ -345,7 +345,7 @@ static void *slob_alloc(size_t size, gfp_t gfp, int align, int node)
 	}
 
 	/* Attempt to alloc */
-	if(largest) {
+	if (largest) {
 		prev = largest->list.prev;
 		b = slob_page_alloc(largest, size, align);
 
